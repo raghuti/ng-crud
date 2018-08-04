@@ -1,0 +1,87 @@
+let express = require("express"),
+    bodyParser = require("body-parser"),
+    cors = require("cors"),
+    mongoose = require("mongoose");
+
+    var Schema = mongoose.Schema;
+    var ObjectId = Schema.ObjectId;
+    var Hero = mongoose.model("Hero", new Schema({
+        id : ObjectId,
+        title : String,
+        power : Number
+    }));
+mongoose.Promise = global.Promise;
+// mongoose.connect("mongodb://localhost:27017/valtech-crud", { useNewUrlParser: true }).then(
+   mongoose.connect("mongodb://test:test1234@ds111422.mlab.com:11422/valtech-crud", { useNewUrlParser: true }).then(
+    () => {console.log('Database is connected') },
+    err => { console.log('Can not connect to the database'+ err)}
+);
+const   app = express();
+        app.use(bodyParser.json());
+        app.use(cors());
+//----------------------------------------------------
+var heroRoutes = express.Router();
+heroRoutes.route('/add').post(function (req, res) {
+    let hero = new Hero(req.body);
+    console.log(req.body);
+    hero.save().then(item => {
+      res.status(200).json({'hero': 'Hero added successfully'});
+      })
+      .catch(err => {
+      res.status(400).send("unable to save to database");
+      });
+  });
+
+  heroRoutes.route('/').get(function (req, res) {
+    Hero.find(function (err, heroes){
+            if(err){
+            console.log(err);
+            }
+            else {
+            res.json(heroes);
+            }
+        });
+    });
+
+    // Defined edit route
+    heroRoutes.route('/edit/:id').get(function (req, res) {
+        console.log("edit request")
+        var id = req.params.id;
+        Hero.findById(id, function (err, hero){
+            res.json(hero);
+        });
+    });
+
+    //  Defined update route
+    heroRoutes.route('/update/:id').post(function (req, res) {
+        console.log(req.params.id);
+        Hero.findById(req.params.id, function(err, hero) {
+        if (!hero)
+        return next(new Error('Could not load Document'));
+        else {
+        hero.title = req.body.title;
+        hero.power = req.body.power;
+
+        hero.save().then(hero => {
+            res.json(hero);
+        })
+        .catch(err => {
+            res.status(400).send("unable to update the database");
+        });
+        }
+    });
+    });
+
+    // Defined delete | remove | destroy route
+    heroRoutes.route('/delete/:id').get(function (req, res) {
+        console.log("delete request")
+        Hero.findByIdAndRemove({_id: req.params.id}, function(err, hero){
+            if(err) res.json(err);
+            else res.json('Successfully removed');
+        });
+    });
+
+    app.use('/heroes', heroRoutes);
+//----------------------------------------------------
+app.listen(2525);
+console.log("server is live on localhost:2525");
